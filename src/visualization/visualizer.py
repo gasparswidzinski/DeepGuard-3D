@@ -5,7 +5,7 @@ import pandas as pd
 class BathymetryVisualizer:
     
     def __init__(self, dataframe: pd.DataFrame):
-        self.dataframe = dataframe
+        self.df = dataframe
     
     def render_point_cloud(self):
         print("[*] Initializing 3D Engine...")
