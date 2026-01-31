@@ -1,4 +1,5 @@
-from src.core.ingestor import BathymetryIngestor    
+from src.core.ingestor import BathymetryIngestor
+from src.visualization.visualizer import BathymetryVisualizer    
 import os
 
 def main():
@@ -12,28 +13,20 @@ def main():
     
     #2. initialize the ingestor
     try:
-        
+        # Ingestion
         ingestor = BathymetryIngestor(data_path)
-        
-        #3. load the data
         df = ingestor.load_data()
         
-        #4. display engineering statistics
+        # Statistics
         print("\n[i] Seabed Statistical Summary:")
-        print("-"*30)
-        stats = ingestor.get_statistics()
-        print(stats)
-        print("-"*30)
+        print(ingestor.get_statistics())
         
-        #5. quick chet deepest point
-        deepest_point = df['depth'].min()
-        print(f"[i] Deepest Point: {deepest_point:.2f} meters")
-        
-    except FileNotFoundError as e:
-        print(f"[ERROR] {e}")
-        print("Tip: Run 'python scripts/generate_mock_data.py' first!")
+        # Visualization
+        visualizer = BathymetryVisualizer(df)
+        visualizer.render_point_cloud()
+
     except Exception as e:
-        print(f"[FATAL ERROR] An unexpected error occurred: {e}")
+        print(f"[FATAL ERROR] {e}") 
     
 if __name__ == "__main__":
     main()
