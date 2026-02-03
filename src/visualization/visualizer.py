@@ -1,44 +1,61 @@
 import pyvista as pv
-import numpy as np
 import pandas as pd
+import numpy as np
 
 class BathymetryVisualizer:
-    
     def __init__(self, dataframe: pd.DataFrame):
         self.df = dataframe
-    
+
     def render_point_cloud(self):
-        print("[*] Initializing 3D Engine...")
+        print("[*] Applying Security Overlay...")
         
-        # 1. Extract coordinates
-        x = self.df['longitude'].values
-        y = self.df['latitude'].values
-        z = self.df['depth'].values
+        # 1. Processing 
+        sea_data = self.df[self.df['depth'] < 0].copy()
+        x = (sea_data['longitude'].values - sea_data['longitude'].min()) * 111000
+        y = (sea_data['latitude'].values - sea_data['latitude'].min()) * 111000
+        z = sea_data['depth'].values
 
-        # 2. APPLY SCALING (The Fix)
-        # We shrink the Z axis so it matches the 'scale' of degrees
-        # Or we can think of it as Z_scaled = Z * 0.01
-        z_visual = z * 0.01 
+        points = np.column_stack((x, y, z))
+        surf = pv.PolyData(points).delaunay_2d()
 
-        points = np.column_stack((x, y, z_visual))
+        # 2. THE SECURITY LOGIC: Create an Alert Mask
+        # Anything between 0 and -7 meters is "Danger"
+        danger_threshold = -7.0
+        is_danger = z > danger_threshold 
+
+        # 3. Setup Plotter
+        plotter = pv.Plotter(title="DeepGuard 3D - Security Dashboard")
+        plotter.set_background("#050505")
         
-        point_cloud = pv.PolyData(points)
-        point_cloud["Depth (m)"] = z # We keep the original values for the legend
+        # Base Mesh
+        plotter.add_mesh(surf, scalars=z, cmap="viridis", label="Standard Depth")
 
-        plotter = pv.Plotter(title="DeepGuard 3D - Scaled Terrain")
-        plotter.set_background("black")
+        
+        danger_points = points[is_danger]
+        if len(danger_points) > 0:
+            plotter.add_mesh(
+                pv.PolyData(danger_points), 
+                color="red", 
+                point_size=10, 
+                render_points_as_spheres=True,
+                label="!!! SHALLOW WATER ALERT !!!"
+            )
+        
+        water_surface = pv.Plane(
+            center=(np.mean(x), np.mean(y), 0),
+            direction=(0, 0, 1),
+            i_size=max(x)-min(x),
+            j_size=max(y)-min(y)
+        )
         
         plotter.add_mesh(
-            point_cloud, 
-            scalars="Depth (m)", 
-            cmap="viridis", 
-            point_size=5.0, 
-            render_points_as_spheres=True
-        )
+        water_surface, 
+        color="#00b4d8", 
+        opacity=0.2,    
+        label="Mean Sea Level"
+    )
 
-        plotter.add_scalar_bar(title="True Depth (m)")
-        # This makes the floor look like a square instead of a line
-        plotter.set_scale(zscale=1.0) 
-        
+        plotter.add_legend()
+        plotter.add_axes()
+        print(f"[!] Alert: {len(danger_points)} shallow points detected in the harbor.")
         plotter.show()
-    
