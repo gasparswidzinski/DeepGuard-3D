@@ -19,7 +19,6 @@ class BathymetryVisualizer:
         surf = pv.PolyData(points).delaunay_2d()
 
         # 2. THE SECURITY LOGIC: Create an Alert Mask
-        # Anything between 0 and -7 meters is "Danger"
         danger_threshold = -7.0
         is_danger = z > danger_threshold 
 
